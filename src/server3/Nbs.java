@@ -1,14 +1,8 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+
 
 package server3;
 
-/**
- *
- * 
- */
+
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
@@ -17,31 +11,24 @@ import java.nio.charset.*;
 import java.net.*;
 import java.util.*;
 import javax.script.*;
+import java.lang.Thread;
+import server3.Util;
+
 public class Nbs {
     public ScriptEngine jsEngine;
-
+    public Util util;
     public Nbs() {
         ScriptEngineManager mgr = new ScriptEngineManager();
         jsEngine = mgr.getEngineByName("JavaScript");
+        util = new Util();
     }
-    static String open_file(String file_name) throws Exception {
-       File fileDir = new File(file_name);
-        BufferedReader in = new BufferedReader(
-           new InputStreamReader(
-             new FileInputStream(fileDir), "UTF8"));
-        String str;
-        StringBuffer ret = new StringBuffer();
-        while ((str = in.readLine()) != null) {
-            ret.append(str);
-        }
-        in.close();
-        return ret.toString();
-    }
+    
 
     public void handle_tick(ArrayList readable, ArrayList writable, Hashtable scope)
     throws Exception {
          try {
-            String code = open_file("tick.js");
+            String code = util.open_file("tick.js");
+            jsEngine.put("util", util);
             jsEngine.eval(code);
             Invocable invocableEngine = (Invocable) jsEngine;
             invocableEngine.invokeFunction("tick", readable, writable, scope);
@@ -53,7 +40,8 @@ public class Nbs {
     public void handle_message(String message, SocketChannel client,
          ArrayList readable, ArrayList writable, Hashtable scope) throws Exception {
          try {
-            String code = open_file("handle.js");
+            String code = util.open_file("handle.js");
+            jsEngine.put("util", util);
             jsEngine.eval(code);
             Invocable invocableEngine = (Invocable) jsEngine;
             invocableEngine.invokeFunction("handle", message, client, readable, writable, scope);
@@ -67,35 +55,7 @@ public class Nbs {
          //   client.close();
        // }
     }
-    static void write(SocketChannel client, String message) throws Exception{
-        byte[] message_bytes = message.getBytes("UTF8");
-        ByteBuffer b = ByteBuffer.allocate(message_bytes.length);
-        byte[] arr = b.array();
-
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = message_bytes[i];
-        }
-        System.out.println(message + "--");
-        client.write(b);
-    }
-    static String read(SocketChannel client) throws Exception {
-          
-       ByteBuffer b = ByteBuffer.allocate(1024);
-       try {
-        int numb = client.read(b);
-        if (numb == -1) {
-            client.close();
-            return "";
-        }
-       } catch (Exception e) {
-           client.close();
-           return "";
-       }
-       b.flip();
-       String ret = new String(b.array(), "UTF8");
-       System.out.println(":)");
-       return ret;
-    }
+    
 
     /**
      * @param args the command line arguments
@@ -157,7 +117,7 @@ public class Nbs {
             while (readableLoop.hasNext()) {
                 SocketChannel client = (SocketChannel) readableLoop.next();
                 readableLoop.remove();
-                String message = read(client);
+                String message = util.read(client);
                 if (!message.equals("")) {
                     System.out.println("message is " + message);
                     handle_message(message, client, readable, writable, scope);
@@ -165,9 +125,10 @@ public class Nbs {
             }
             if (counter % cycles_per_tick == 0) {
                 //System.out.println("tick");
-                handle_tick(readable, writable, scope);
+                //handle_tick(readable, writable, scope);
             }
             counter++;
+            Thread.sleep(250);
         }
     }
     public static void main(String[] args) throws Exception {
