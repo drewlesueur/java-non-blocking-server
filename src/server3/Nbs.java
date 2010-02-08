@@ -13,6 +13,7 @@ import java.util.*;
 import javax.script.*;
 import java.lang.Thread;
 import server3.Util;
+import java.sql.*;
 
 public class Nbs {
     public ScriptEngine jsEngine;
@@ -128,11 +129,12 @@ public class Nbs {
                 //handle_tick(readable, writable, scope);
             }
             counter++;
-            Thread.sleep(250);
+            Thread.sleep(10);
         }
     }
     public static void main(String[] args) throws Exception {
         Nbs nbs = new Nbs();
         nbs.start();
+
     }
 }
